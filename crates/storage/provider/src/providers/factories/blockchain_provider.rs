@@ -1,6 +1,6 @@
 #![allow(unused)]
 use crate::{
-    providers::{BlockchainProvider2, BlockchainProvider3, StaticFileProvider},
+    providers::{BlockchainProvider3, StaticFileProvider},
     AccountReader, BlockHashReader, BlockIdReader, BlockNumReader, BlockReader, BlockReaderIdExt,
     BlockSource, CanonChainTracker, CanonStateNotifications, CanonStateSubscriptions,
     ChainSpecProvider, ChainStateBlockReader, ChangeSetReader, DatabaseProvider,
@@ -118,14 +118,7 @@ impl<N: ProviderNodeTypes> BlockchainProviderFactory<N> {
     /// database using different types of providers. Example: [`HeaderProvider`]
     /// [`BlockHashReader`]. This may fail if the inner read database transaction fails to open.
     #[track_caller]
-    pub fn provider2(&self) -> ProviderResult<BlockchainProvider2<N>> {
-        let mut provider = BlockchainProvider2::new(self.database.clone())?;
-        provider.canonical_in_memory_state = self.canonical_in_memory_state();
-        Ok(provider)
-    }
-
-    #[track_caller]
-    pub(crate) fn provider(&self) -> ProviderResult<BlockchainProvider3<N>> {
+    pub fn provider(&self) -> ProviderResult<BlockchainProvider3<N>> {
         BlockchainProvider3::new(self.database.clone(), self.canonical_in_memory_state())
     }
 
@@ -697,7 +690,7 @@ mod tests {
     };
 
     use crate::{
-        providers::BlockchainProvider2,
+        providers::BlockchainProviderFactory,
         test_utils::{
             create_test_provider_factory, create_test_provider_factory_with_chain_spec,
             MockNodeTypesWithDB,
@@ -739,8 +732,6 @@ mod tests {
     };
     use revm::db::BundleState;
     use std::ops::Bound;
-
-    use super::BlockchainProviderFactory;
 
     const TEST_BLOCKS_COUNT: usize = 5;
 
@@ -972,7 +963,7 @@ mod tests {
         provider_rw.commit()?;
 
         // Create a new provider
-        let provider = BlockchainProvider2::new(factory)?;
+        let provider = BlockchainProviderFactory::new(factory)?;
 
         // Useful blocks
         let first_db_block = database_blocks.first().unwrap();
@@ -1070,7 +1061,7 @@ mod tests {
         provider_rw.commit()?;
 
         // Create a new provider
-        let provider = BlockchainProvider2::new(factory)?;
+        let provider = BlockchainProviderFactory::new(factory)?;
 
         // First in memory block
         let first_in_mem_block = in_memory_blocks.first().unwrap();
@@ -1334,7 +1325,7 @@ mod tests {
         provider_rw.insert_historical_block(block_1)?;
         provider_rw.commit()?;
 
-        let provider = BlockchainProvider2::new(factory)?;
+        let provider = BlockchainProviderFactory::new(factory)?;
 
         // Subscribe twice for canonical state updates.
         let in_memory_state = provider.canonical_in_memory_state();
@@ -1779,7 +1770,7 @@ mod tests {
         )?;
         provider_rw.commit()?;
 
-        let provider = BlockchainProvider2::new(factory)?;
+        let provider = BlockchainProviderFactory::new(factory)?;
 
         let in_memory_changesets = in_memory_changesets.into_iter().next().unwrap();
         let chain = NewCanonicalChain::Commit {
